@@ -27,6 +27,9 @@ type {{.Name}}Config struct {
 	// Wait is how long wait before sending a batch
 	Wait time.Duration
 
+	// Cache Time
+	CacheTime time.Duration
+
 	// MaxBatch will limit the maximum number of keys to send in one batch, 0 = not limit
 	MaxBatch int
 }
@@ -38,6 +41,11 @@ func New{{.Name}}(config {{.Name}}Config) *{{.Name}} {
 		wait: config.Wait,
 		maxBatch: config.MaxBatch,
 	}
+}
+
+type {{.Name}}CacheItem struct{
+    last time.Time
+    v {{.ValType.String}}
 }
 
 // {{.Name}} batches and caches requests          
@@ -54,7 +62,9 @@ type {{.Name}} struct {
 	// INTERNAL
 
 	// lazily created cache
-	cache map[{{.KeyType.String}}]{{.ValType.String}}
+	cache map[{{.KeyType.String}}]*{{.Name}}CacheItem
+    // cache timeout
+    cachetime time.Duration
 
 	// the current batch. keys will continue to be collected until timeout is hit,
 	// then everything will be sent to the fetch method and out to the listeners
@@ -85,7 +95,7 @@ func (l *{{.Name}}) LoadThunk(key {{.KeyType.String}}) func() ({{.ValType.String
 	if it, ok := l.cache[key]; ok {
 		l.mu.Unlock()
 		return func() ({{.ValType.String}}, error) {
-			return it, nil
+			return it.v, nil
 		}
 	}
 	if l.batch == nil {
@@ -191,9 +201,22 @@ func (l *{{.Name}}) Clear(key {{.KeyType}}) {
 
 func (l *{{.Name}}) unsafeSet(key {{.KeyType}}, value {{.ValType.String}}) {
 	if l.cache == nil {
-		l.cache = map[{{.KeyType}}]{{.ValType.String}}{}
+		l.cache = map[{{.KeyType}}]*{{.Name}}CacheItem{}
 	}
-	l.cache[key] = value
+	l.cache[key] = &{{.Name}}CacheItem{
+        last: time.Now(),
+        v:value,
+    }
+}
+
+// CacheRotation Rotating cache time
+func (l *{{.Name}}) CacheRotation(t time.Time) {
+    for k, v:=range l.cache{
+        if t.Sub(v.last) > l.cachetime {
+            delete(l.cache, k)
+        }
+        v.last = t
+    }
 }
 
 // keyIndex will return the location of the key in the batch, if its not found
