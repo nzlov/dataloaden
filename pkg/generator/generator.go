@@ -78,7 +78,7 @@ func parseType(str string) (*goType, error) {
 	return t, nil
 }
 
-func Generate(name string, keyType string, valueType string, wd string) error {
+func Generate(name string, keyType string, valueType string, wd string, engine string) error {
 	data, err := getData(name, keyType, valueType, wd)
 	if err != nil {
 		return err
@@ -86,7 +86,7 @@ func Generate(name string, keyType string, valueType string, wd string) error {
 
 	filename := strings.ToLower(data.Name) + "_gen.go"
 
-	if err := writeTemplate(filepath.Join(wd, filename), data); err != nil {
+	if err := writeTemplate(filepath.Join(wd, filename), data, engine); err != nil {
 		return err
 	}
 
@@ -138,10 +138,17 @@ func getPackage(dir string) *packages.Package {
 	return p[0]
 }
 
-func writeTemplate(filepath string, data templateData) error {
+func writeTemplate(filepath string, data templateData, engine string) error {
 	var buf bytes.Buffer
-	if err := tpl.Execute(&buf, data); err != nil {
-		return errors.Wrap(err, "generating code")
+	switch engine {
+	case "custom":
+		if err := tplCustom.Execute(&buf, data); err != nil {
+			return errors.Wrap(err, "generating code")
+		}
+	default:
+		if err := tpl.Execute(&buf, data); err != nil {
+			return errors.Wrap(err, "generating code")
+		}
 	}
 
 	src, err := imports.Process(filepath, buf.Bytes(), nil)
@@ -156,6 +163,13 @@ func writeTemplate(filepath string, data templateData) error {
 	return nil
 }
 
+func pFirst(s string) string {
+	r := []rune(s)
+	if r[0] == '*' {
+		r = r[1:]
+	}
+	return string(r)
+}
 func lcFirst(s string) string {
 	r := []rune(s)
 	r[0] = unicode.ToLower(r[0])
