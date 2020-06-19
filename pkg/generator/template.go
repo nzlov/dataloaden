@@ -279,7 +279,6 @@ import (
     {{if .ValType.ImportPath}}"{{.ValType.ImportPath}}"{{end}}
 )
 
-
 type {{.Name|lcFirst}}Cache interface {
 	Save(string, []byte)
 	Get(string) ([]byte, bool)
@@ -290,13 +289,21 @@ func {{.Name|lcFirst}}Key(key {{.KeyType.String}}) string {
 	return fmt.Sprintf("nzlov@Cache:{{.Name}}:%v", key)
 }
 func {{.Name|lcFirst}}WithBytes(value []byte) {{.ValType.String}} {
+    if string(value) == ""{
+	{{- if .ValType.IsPtr }}
+    return nil
+	{{- else if .ValType.IsSlice }}
+    return nil
+    {{- end }}
+    }
+
 	o := {{.ValType.String|pFirst}}{}
 	json.Unmarshal(value, &o)
 	{{- if .ValType.IsPtr }}
 	return &o
     {{- else }}
 	return o
-    {{- end}}
+    {{- end }}
 }
 
 // {{.Name}}Config captures the config to create a new {{.Name}}
@@ -441,7 +448,18 @@ func (l *{{.Name}}) Clear(key {{.KeyType}}) {
 }
 
 func (l *{{.Name}}) unsafeSet(key {{.KeyType}}, value {{.ValType.String}}) {
-	data, _ := json.Marshal(value)
+    data := []byte{}
+	{{- if .ValType.IsPtr }}
+    if value != nil{
+        data, _ = json.Marshal(value)
+    }
+	{{- else if .ValType.IsSlice }}
+    if value != nil{
+        data, _ = json.Marshal(value)
+    }
+	{{- else }}
+        data, _ = json.Marshal(value)
+	{{- end }}
 	l.cache.Save({{.Name|lcFirst}}Key(key), data)
 }
 
