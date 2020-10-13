@@ -528,7 +528,7 @@ import (
 )
 
 type {{.Name|lcFirst}}Cache interface {
-	Save(string, time.Duration, []byte)
+	SaveExpire(string, time.Duration, []byte)
 	GetExpire(string,time.Duration) ([]byte, bool)
 	Clear(string)
 }
@@ -710,7 +710,7 @@ func (l *{{.Name}}) unsafeSet(key {{.KeyType}}, value {{.ValType.String}}) {
 	{{- else }}
         data, _ = json.Marshal(value)
 	{{- end }}
-	l.cache.Save({{.Name|lcFirst}}Key(key), l.cacheTime, data)
+	l.cache.SaveExpire({{.Name|lcFirst}}Key(key), l.cacheTime, data)
 }
 
 // keyIndex will return the location of the key in the batch, if its not found
