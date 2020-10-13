@@ -17,6 +17,9 @@ type UserLoaderConfig struct {
 	// Wait is how long wait before sending a batch
 	Wait time.Duration
 
+	// Cache Time
+	CacheTime time.Duration
+
 	// MaxBatch will limit the maximum number of keys to send in one batch, 0 = not limit
 	MaxBatch int
 }
@@ -24,10 +27,17 @@ type UserLoaderConfig struct {
 // NewUserLoader creates a new UserLoader given a fetch, wait, and maxBatch
 func NewUserLoader(config UserLoaderConfig) *UserLoader {
 	return &UserLoader{
-		fetch:    config.Fetch,
-		wait:     config.Wait,
-		maxBatch: config.MaxBatch,
+		fetch:     config.Fetch,
+		wait:      config.Wait,
+		maxBatch:  config.MaxBatch,
+		cachetime: config.CacheTime,
+		cache:     &sync.Map{},
 	}
+}
+
+type UserLoaderCacheItem struct {
+	last time.Time
+	v    *example.User
 }
 
 // UserLoader batches and caches requests
@@ -44,7 +54,10 @@ type UserLoader struct {
 	// INTERNAL
 
 	// lazily created cache
-	cache map[string]*example.User
+	//cache map[string]*UserLoaderCacheItem
+	cache *sync.Map
+	// cache timeout
+	cachetime time.Duration
 
 	// the current batch. keys will continue to be collected until timeout is hit,
 	// then everything will be sent to the fetch method and out to the listeners
@@ -71,19 +84,19 @@ func (l *UserLoader) Load(key string) (*example.User, error) {
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
 func (l *UserLoader) LoadThunk(key string) func() (*example.User, error) {
-	l.mu.Lock()
-	if it, ok := l.cache[key]; ok {
-		l.mu.Unlock()
+	if it, ok := l.cache.Load(key); ok {
 		return func() (*example.User, error) {
-			return it, nil
+			iv := it.(*UserLoaderCacheItem)
+			iv.last = time.Now()
+			return iv.v, nil
 		}
 	}
+
 	if l.batch == nil {
 		l.batch = &userLoaderBatch{done: make(chan struct{})}
 	}
 	batch := l.batch
 	pos := batch.keyIndex(l, key)
-	l.mu.Unlock()
 
 	return func() (*example.User, error) {
 		<-batch.done
@@ -102,9 +115,7 @@ func (l *UserLoader) LoadThunk(key string) func() (*example.User, error) {
 		}
 
 		if err == nil {
-			l.mu.Lock()
 			l.unsafeSet(key, data)
-			l.mu.Unlock()
 		}
 
 		return data, err
@@ -150,30 +161,38 @@ func (l *UserLoader) LoadAllThunk(keys []string) func() ([]*example.User, []erro
 // and false is returned.
 // (To forcefully prime the cache, clear the key first with loader.clear(key).prime(key, value).)
 func (l *UserLoader) Prime(key string, value *example.User) bool {
-	l.mu.Lock()
 	var found bool
-	if _, found = l.cache[key]; !found {
+	if _, found = l.cache.Load(key); !found {
 		// make a copy when writing to the cache, its easy to pass a pointer in from a loop var
 		// and end up with the whole cache pointing to the same value.
 		cpy := *value
 		l.unsafeSet(key, &cpy)
 	}
-	l.mu.Unlock()
 	return !found
 }
 
 // Clear the value at key from the cache, if it exists
 func (l *UserLoader) Clear(key string) {
-	l.mu.Lock()
-	delete(l.cache, key)
-	l.mu.Unlock()
+	l.cache.Delete(key)
 }
 
 func (l *UserLoader) unsafeSet(key string, value *example.User) {
-	if l.cache == nil {
-		l.cache = map[string]*example.User{}
-	}
-	l.cache[key] = value
+	l.cache.Store(key, &UserLoaderCacheItem{
+		last: time.Now(),
+		v:    value,
+	})
+}
+
+// CacheRotation Rotating cache time
+func (l *UserLoader) CacheRotation(t time.Time) {
+	l.cache.Range(func(k, v interface{}) bool {
+		iv := v.(*UserLoaderCacheItem)
+		if t.Sub(iv.last) > l.cachetime {
+			l.cache.Delete(k)
+		}
+		iv.last = t
+		return true
+	})
 }
 
 // keyIndex will return the location of the key in the batch, if its not found
@@ -204,16 +223,13 @@ func (b *userLoaderBatch) keyIndex(l *UserLoader, key string) int {
 
 func (b *userLoaderBatch) startTimer(l *UserLoader) {
 	time.Sleep(l.wait)
-	l.mu.Lock()
 
 	// we must have hit a batch limit and are already finalizing this batch
 	if b.closing {
-		l.mu.Unlock()
 		return
 	}
 
 	l.batch = nil
-	l.mu.Unlock()
 
 	b.end(l)
 }
