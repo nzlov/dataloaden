@@ -141,8 +141,12 @@ func getPackage(dir string) *packages.Package {
 func writeTemplate(filepath string, data templateData, engine string) error {
 	var buf bytes.Buffer
 	switch engine {
-	case "custom":
-		if err := tplCustom.Execute(&buf, data); err != nil {
+	case "cache":
+		if err := tplCache.Execute(&buf, data); err != nil {
+			return errors.Wrap(err, "generating code")
+		}
+	case "expire":
+		if err := tplExpire.Execute(&buf, data); err != nil {
 			return errors.Wrap(err, "generating code")
 		}
 	default:

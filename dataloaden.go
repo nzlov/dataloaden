@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	cache = flag.String("cache", "self", "cache engine.(self, custom)")
+	cache = flag.String("cache", "self", "cache engine.(self, cache, expire)")
 )
 
 func main() {
