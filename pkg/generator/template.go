@@ -248,6 +248,7 @@ func (b *{{.Name|lcFirst}}Batch) startTimer(l *{{.Name}}) {
 	if b.closing {
 		return
 	}
+    b.closing = true
 
 	l.batch = nil
 
@@ -496,6 +497,7 @@ func (b *{{.Name|lcFirst}}Batch) startTimer(l *{{.Name}}) {
 	if b.closing {
 		return
 	}
+    b.closing = true
 
 	l.batch = nil
 
@@ -746,6 +748,7 @@ func (b *{{.Name|lcFirst}}Batch) startTimer(l *{{.Name}}) {
 	if b.closing {
 		return
 	}
+    b.closing = true
 
 	l.batch = nil
 
