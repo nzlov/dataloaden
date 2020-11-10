@@ -83,6 +83,7 @@ type {{.Name|lcFirst}}Batch struct {
 	error   []error
 	closing bool
 	done    chan struct{}
+	m       *sync.Mutex
 }
 
 // Load a {{.ValType.Name}} by key, batching and caching will be applied automatically
@@ -103,7 +104,7 @@ func (l *{{.Name}}) LoadThunk(key {{.KeyType.String}}) func() ({{.ValType.String
 	}
 
 	if l.batch == nil {
-		l.batch = &{{.Name|lcFirst}}Batch{done: make(chan struct{})}
+        l.batch = &{{.Name|lcFirst}}Batch{done: make(chan struct{}),m: &sync.Mutex{}}
 	}
 	batch := l.batch
 	pos := batch.keyIndex(l, key)
@@ -223,6 +224,9 @@ func (b *{{.Name|lcFirst}}Batch) keyIndex(l *{{.Name}}, key {{.KeyType}}) int {
 			return i
 		}
 	}
+
+	b.m.Lock()
+	defer b.m.Unlock()
 
 	pos := len(b.keys)
 	b.keys = append(b.keys, key)
@@ -360,6 +364,7 @@ type {{.Name|lcFirst}}Batch struct {
 	error   []error
 	closing bool
 	done    chan struct{}
+	m       *sync.Mutex
 }
 
 // Load a {{.ValType.Name}} by key, batching and caching will be applied automatically
@@ -379,7 +384,7 @@ func (l *{{.Name}}) LoadThunk(key {{.KeyType.String}}) func() ({{.ValType.String
 
 
 	if l.batch == nil {
-		l.batch = &{{.Name|lcFirst}}Batch{done: make(chan struct{})}
+        l.batch = &{{.Name|lcFirst}}Batch{done: make(chan struct{}),m: &sync.Mutex{}}
 	}
 	batch := l.batch
 	pos := batch.keyIndex(l, key)
@@ -472,6 +477,9 @@ func (b *{{.Name|lcFirst}}Batch) keyIndex(l *{{.Name}}, key {{.KeyType}}) int {
 			return i
 		}
 	}
+
+	b.m.Lock()
+	defer b.m.Unlock()
 
 	pos := len(b.keys)
 	b.keys = append(b.keys, key)
@@ -612,6 +620,7 @@ type {{.Name|lcFirst}}Batch struct {
 	error   []error
 	closing bool
 	done    chan struct{}
+	m       *sync.Mutex
 }
 
 // Load a {{.ValType.Name}} by key, batching and caching will be applied automatically
@@ -630,7 +639,7 @@ func (l *{{.Name}}) LoadThunk(key {{.KeyType.String}}) func() ({{.ValType.String
 	}
 
 	if l.batch == nil {
-		l.batch = &{{.Name|lcFirst}}Batch{done: make(chan struct{})}
+        l.batch = &{{.Name|lcFirst}}Batch{done: make(chan struct{}),m: &sync.Mutex{}}
 	}
 	batch := l.batch
 	pos := batch.keyIndex(l, key)
@@ -723,6 +732,9 @@ func (b *{{.Name|lcFirst}}Batch) keyIndex(l *{{.Name}}, key {{.KeyType}}) int {
 			return i
 		}
 	}
+
+	b.m.Lock()
+	defer b.m.Unlock()
 
 	pos := len(b.keys)
 	b.keys = append(b.keys, key)
