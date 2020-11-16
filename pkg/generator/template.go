@@ -449,8 +449,13 @@ func (l *{{.Name}}) LoadAllThunk(keys []{{.KeyType}}) (func() ([]{{.ValType.Stri
 }
 
 // Clear the value at key from the cache, if it exists
-func (l *{{.Name}}) Clear(key {{.KeyType}}) {
-	l.cache.Clear({{.Name|lcFirst}}Key(key))
+func (l *{{.Name}}) Clear(keys ...{{.KeyType}}) {
+    nk:=[]string{}
+    for _,v:=range keys{
+        nk = append(nk,{{.Name|lcFirst}}Key(v))
+    }
+
+	l.cache.Clear(nk...)
 }
 
 func (l *{{.Name}}) unsafeSet(key {{.KeyType}}, value {{.ValType.String}}) {
@@ -704,8 +709,13 @@ func (l *{{.Name}}) LoadAllThunk(keys []{{.KeyType}}) (func() ([]{{.ValType.Stri
 }
 
 // Clear the value at key from the cache, if it exists
-func (l *{{.Name}}) Clear(key {{.KeyType}}) {
-	l.cache.Clear({{.Name|lcFirst}}Key(key))
+func (l *{{.Name}}) Clear(keys ...{{.KeyType}}) {
+    nk:=[]string{}
+    for _,v:=range keys{
+        nk = append(nk,{{.Name|lcFirst}}Key(v))
+    }
+
+	l.cache.Clear(nk...)
 }
 
 func (l *{{.Name}}) unsafeSet(key {{.KeyType}}, value {{.ValType.String}}) {
