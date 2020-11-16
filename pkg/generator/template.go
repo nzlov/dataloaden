@@ -287,7 +287,7 @@ import (
 type {{.Name|lcFirst}}Cache interface {
 	Save(string, []byte)
 	Get(string) ([]byte, bool)
-	Clear(string)
+	Clear(...string)
 }
 
 func {{.Name|lcFirst}}Key(key {{.KeyType.String}}) string {
@@ -540,7 +540,7 @@ import (
 type {{.Name|lcFirst}}Cache interface {
 	SaveExpire(string, time.Duration, []byte)
 	GetExpire(string,time.Duration) ([]byte, bool)
-	Clear(string)
+	Clear(...string)
 }
 
 func {{.Name|lcFirst}}Key(key {{.KeyType.String}}) string {
