@@ -226,10 +226,10 @@ func (b *{{.Name|lcFirst}}Batch) keyIndex(l *{{.Name}}, key {{.KeyType}}) int {
 	}
 
 	b.m.Lock()
-	defer b.m.Unlock()
-
 	pos := len(b.keys)
 	b.keys = append(b.keys, key)
+	b.m.Unlock()
+
 	if pos == 0 {
 		go b.startTimer(l)
 	}
@@ -484,10 +484,10 @@ func (b *{{.Name|lcFirst}}Batch) keyIndex(l *{{.Name}}, key {{.KeyType}}) int {
 	}
 
 	b.m.Lock()
-	defer b.m.Unlock()
-
 	pos := len(b.keys)
 	b.keys = append(b.keys, key)
+	b.m.Unlock()
+
 	if pos == 0 {
 		go b.startTimer(l)
 	}
@@ -744,10 +744,10 @@ func (b *{{.Name|lcFirst}}Batch) keyIndex(l *{{.Name}}, key {{.KeyType}}) int {
 	}
 
 	b.m.Lock()
-	defer b.m.Unlock()
-
 	pos := len(b.keys)
 	b.keys = append(b.keys, key)
+	b.m.Unlock()
+
 	if pos == 0 {
 		go b.startTimer(l)
 	}
